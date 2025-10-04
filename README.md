@@ -2,7 +2,7 @@
 TripFare: Predicts urban taxi fares using machine learning. Includes data preprocessing, feature engineering, regression models, and a Streamlit app for interactive fare prediction.
 TripFare: Predicting Urban Taxi Fare with Machine Learning 🚕
 
-📊 Analyze historical taxi trip data to understand fare patterns
+📊 Analysing historical taxi trip data to understand fare patterns
 
 🛠️ Data preprocessing & cleaning for accurate modeling
 
