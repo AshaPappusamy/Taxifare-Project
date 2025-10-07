@@ -9,7 +9,7 @@ import math
 # Load Zones and Model
 # -------------------------
 zones_df = pd.read_csv("Zones.csv")  # Make sure this file is in repo root
-pickup_zones = zones_df['zone'].unique().tolist()
+pickup_zones = zones_df['Zone'].str.strip().unique().tolist()
 dropoff_zones = pickup_zones.copy()
 
 model = joblib.load("best_gradient_boosting_model.pkl")
@@ -116,23 +116,17 @@ input_data = pd.DataFrame([{
 }])
 
 # -------------------------
-# Layout: Map & Bill Side-by-Side
+# Layout: Small Map & Bill Side-by-Side
 # -------------------------
 col1, col2 = st.columns([1,1])
 
-# Map
+# Map (small placeholder just for visualization)
 with col1:
     st.markdown("### 🗺️ Trip Map")
     st.map(pd.DataFrame({
-        'lat': [
-            40.6413 if pickup_zone=="JFK Airport" else 40.7769 if pickup_zone=="LaGuardia Airport" else 40.7580,
-            40.6413 if dropoff_zone=="JFK Airport" else 40.7769 if dropoff_zone=="LaGuardia Airport" else 40.7580
-        ],
-        'lon': [
-            -73.7781 if pickup_zone=="JFK Airport" else -73.8740 if pickup_zone=="LaGuardia Airport" else -73.9855,
-            -73.7781 if dropoff_zone=="JFK Airport" else -73.8740 if dropoff_zone=="LaGuardia Airport" else -73.9855
-        ]
-    }), zoom=11, use_container_width=True, height=300)
+        'lat': [40.7580, 40.7580],  # placeholder
+        'lon': [-73.9855, -73.9855]  # placeholder
+    }), zoom=12, use_container_width=True, height=200)
 
 # Bill Summary
 with col2:
