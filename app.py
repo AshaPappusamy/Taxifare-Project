@@ -12,7 +12,7 @@ zones_df = pd.read_csv("Zones.csv")
 lookup_df = pd.read_csv("distance_duration_lookup.csv")
 model = joblib.load("best_gradient_boosting_model.pkl")
 
-# Get expected model features
+# Expected features for the model
 expected_features = model.feature_names_in_
 
 # -----------------------------
@@ -24,7 +24,7 @@ st.set_page_config(
 )
 
 # -----------------------------
-# Add background image (taxi stand)
+# Background Image & Button Style
 # -----------------------------
 page_bg_img = """
 <style>
@@ -55,7 +55,6 @@ dropoff_zones = zones_df['Zone'].str.strip().unique().tolist()
 
 pickup_zone = st.sidebar.selectbox("Pickup Zone", pickup_zones)
 dropoff_zone = st.sidebar.selectbox("Dropoff Zone", dropoff_zones)
-
 passenger_count = st.sidebar.slider("Passenger Count", 1, 6, 1)
 pickup_datetime = st.sidebar.date_input("Pickup Date", datetime.now().date())
 pickup_time = st.sidebar.time_input("Pickup Time", datetime.now().time())
@@ -118,18 +117,26 @@ col1, col2 = st.columns([1,1])
 
 with col1:
     st.markdown("### 🗺️ Trip Map")
+    
+    # Get coordinates from Zones.csv for dynamic pin placement
+    try:
+        pickup_coords = zones_df[zones_df['Zone']==pickup_zone][['Latitude','Longitude']].values[0]
+        dropoff_coords = zones_df[zones_df['Zone']==dropoff_zone][['Latitude','Longitude']].values[0]
+    except:
+        # fallback if Latitude/Longitude not present
+        pickup_coords = [40.7580, -73.9855]
+        dropoff_coords = [40.7580, -73.9855]
+    
     st.map(pd.DataFrame({
-        'lat':[40.6413 if pickup_zone=="JFK Airport" else 40.7769 if pickup_zone=="LaGuardia Airport" else 40.7580,
-               40.6413 if dropoff_zone=="JFK Airport" else 40.7769 if dropoff_zone=="LaGuardia Airport" else 40.7580],
-        'lon':[-73.7781 if pickup_zone=="JFK Airport" else -73.8740 if pickup_zone=="LaGuardia Airport" else -73.9855,
-               -73.7781 if dropoff_zone=="JFK Airport" else -73.8740 if dropoff_zone=="LaGuardia Airport" else -73.9855]
+        'lat':[pickup_coords[0], dropoff_coords[0]],
+        'lon':[pickup_coords[1], dropoff_coords[1]]
     }), zoom=11, use_container_width=True, height=300)
 
 with col2:
     st.markdown("### 🧾 Trip Summary")
     st.markdown(
         f"""
-        <div style='background-color: rgba(255,255,255,0.8); padding: 10px; border-radius: 10px;'>
+        <div style='background-color: rgba(255,255,255,0.8); color: black; padding: 15px; border-radius: 10px; font-size:16px;'>
         <b>Pickup Zone:</b> {pickup_zone} <br>
         <b>Dropoff Zone:</b> {dropoff_zone} <br>
         <b>Distance (km):</b> {trip_distance_km:.2f} <br>
