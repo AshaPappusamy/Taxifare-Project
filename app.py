@@ -5,18 +5,20 @@ import pandas as pd
 from datetime import datetime
 import math
 
-# Load dataset for zone dropdowns
-df = pd.read_csv('your_dataset.csv')  # replace with your actual dataset
-pickup_zones = df['pickup_zone'].unique().tolist()
-dropoff_zones = df['pickup_zone'].unique().tolist()
+# -------------------------
+# Load Zones and Model
+# -------------------------
+zones_df = pd.read_csv("Zones.csv")  # Make sure this file is in repo root
+pickup_zones = zones_df['zone'].unique().tolist()
+dropoff_zones = pickup_zones.copy()
 
-# Load trained model
-model = joblib.load('best_gradient_boosting_model.pkl')
+model = joblib.load("best_gradient_boosting_model.pkl")
 
-# Page config
+# -------------------------
+# Page Config & Background
+# -------------------------
 st.set_page_config(page_title="🚖 NYC Taxi Fare Predictor", layout="wide")
 
-# Background CSS
 page_bg = """
 <style>
 [data-testid="stAppViewContainer"] {
@@ -56,7 +58,9 @@ h1,h2,h3,p,label {
 """
 st.markdown(page_bg, unsafe_allow_html=True)
 
+# -------------------------
 # Title
+# -------------------------
 st.markdown("""
 <div style='background-color: rgba(255,255,255,0.85); padding: 20px; border-radius: 12px; text-align: center;'>
     <h1>🚖 NYC Taxi Fare Predictor</h1>
@@ -64,7 +68,9 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Sidebar inputs
+# -------------------------
+# Sidebar Inputs
+# -------------------------
 st.sidebar.header("📍 Trip Details")
 pickup_zone = st.sidebar.selectbox("Pickup Zone", options=pickup_zones)
 dropoff_zone = st.sidebar.selectbox("Dropoff Zone", options=dropoff_zones)
@@ -73,12 +79,13 @@ trip_duration_hr = st.sidebar.number_input("Trip Duration (hours)", value=0.5, m
 pickup_date = st.sidebar.date_input("Pickup Date", datetime.now().date())
 pickup_time = st.sidebar.time_input("Pickup Time", datetime.now().time())
 
-# Derived features
+# -------------------------
+# Feature Engineering
+# -------------------------
 pickup_hour = pickup_time.hour
 is_night = 1 if pickup_hour >= 20 or pickup_hour < 5 else 0
-is_rush_hour = 1 if pickup_hour in [7, 8, 9, 16, 17, 18] else 0
+is_rush_hour = 1 if pickup_hour in [7,8,9,16,17,18] else 0
 
-# Feature encoding
 payment_type_2 = 1
 RatecodeID_2 = 1 if (pickup_zone == "JFK Airport" or dropoff_zone == "JFK Airport") else 0
 RatecodeID_5 = 1 if (pickup_zone == "LaGuardia Airport" or dropoff_zone == "LaGuardia Airport") else 0
@@ -88,11 +95,12 @@ dropoff_zone_LGA = 1 if dropoff_zone == "LaGuardia Airport" else 0
 pickup_zone_JFK = 1 if pickup_zone == "JFK Airport" else 0
 dropoff_zone_JFK = 1 if dropoff_zone == "JFK Airport" else 0
 
-# Log transforms
 trip_distance_km_log = math.log(trip_distance_km)
 trip_duration_hr_log = math.log(trip_duration_hr)
 
-# Prepare DataFrame
+# -------------------------
+# Prepare Input Data
+# -------------------------
 input_data = pd.DataFrame([{
     'trip_duration_hr_log': trip_duration_hr_log,
     'trip_distance_km_log': trip_distance_km_log,
@@ -107,34 +115,37 @@ input_data = pd.DataFrame([{
     'dropoff_zone_JFK Airport': dropoff_zone_JFK
 }])
 
-# Layout: two columns for map & bill
-col1, col2 = st.columns([1, 1])
+# -------------------------
+# Layout: Map & Bill Side-by-Side
+# -------------------------
+col1, col2 = st.columns([1,1])
 
-# Map (small)
+# Map
 with col1:
     st.markdown("### 🗺️ Trip Map")
     st.map(pd.DataFrame({
         'lat': [
-            40.6413 if pickup_zone == "JFK Airport" else 40.7769 if pickup_zone == "LaGuardia Airport" else 40.7580,
-            40.6413 if dropoff_zone == "JFK Airport" else 40.7769 if dropoff_zone == "LaGuardia Airport" else 40.7580
+            40.6413 if pickup_zone=="JFK Airport" else 40.7769 if pickup_zone=="LaGuardia Airport" else 40.7580,
+            40.6413 if dropoff_zone=="JFK Airport" else 40.7769 if dropoff_zone=="LaGuardia Airport" else 40.7580
         ],
         'lon': [
-            -73.7781 if pickup_zone == "JFK Airport" else -73.8740 if pickup_zone == "LaGuardia Airport" else -73.9855,
-            -73.7781 if dropoff_zone == "JFK Airport" else -73.8740 if dropoff_zone == "LaGuardia Airport" else -73.9855
+            -73.7781 if pickup_zone=="JFK Airport" else -73.8740 if pickup_zone=="LaGuardia Airport" else -73.9855,
+            -73.7781 if dropoff_zone=="JFK Airport" else -73.8740 if dropoff_zone=="LaGuardia Airport" else -73.9855
         ]
     }), zoom=11, use_container_width=True, height=300)
 
-# Bill summary
+# Bill Summary
 with col2:
     st.markdown("### 🧾 Trip Bill")
     st.dataframe(input_data, use_container_width=True)
 
-# Predict button (always visible)
+# -------------------------
+# Predict Button
+# -------------------------
 if st.button("💡 Predict Fare"):
     pred_log = model.predict(input_data)[0]
     total_fare = np.exp(pred_log)
 
-    # Side-by-side container for map & bill (optional)
     st.markdown(
         f"""
         <div style='background-color: rgba(255,255,255,0.95); padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 0 10px rgba(0,0,0,0.2); margin-top: 10px;'>
