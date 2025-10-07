@@ -60,19 +60,28 @@ pickup_datetime = st.sidebar.date_input("Pickup Date", datetime.now().date())
 pickup_time = st.sidebar.time_input("Pickup Time", datetime.now().time())
 
 # -----------------------------
-# Auto-fill Distance & Duration
+# Auto-fill Distance & Duration from Lookup Table
 # -----------------------------
 trip_info = lookup_df[
-    (lookup_df['pickup_zone'] == pickup_zone) &
-    (lookup_df['dropoff_zone'] == dropoff_zone)
+    (lookup_df['pickup_zone'].str.strip() == pickup_zone.strip()) &
+    (lookup_df['dropoff_zone'].str.strip() == dropoff_zone.strip())
 ]
 
 if not trip_info.empty:
     trip_distance_km = trip_info['avg_distance_km'].values[0]
     trip_duration_hr = trip_info['avg_duration_hr'].values[0]
 else:
-    trip_distance_km = 5.0
-    trip_duration_hr = 0.5
+    # fallback: approximate with average distance/duration of pickup zone
+    fallback_info = lookup_df[lookup_df['pickup_zone'].str.strip() == pickup_zone.strip()]
+    if not fallback_info.empty:
+        trip_distance_km = fallback_info['avg_distance_km'].mean()
+        trip_duration_hr = fallback_info['avg_duration_hr'].mean()
+    else:
+        # last resort: global averages
+        trip_distance_km = lookup_df['avg_distance_km'].mean()
+        trip_duration_hr = lookup_df['avg_duration_hr'].mean()
+    
+    st.warning("Selected pickup/dropoff combination not found. Using approximate distance/duration.")
 
 # -----------------------------
 # Feature Engineering
@@ -136,7 +145,7 @@ with col2:
     st.markdown("### 🧾 Trip Summary")
     st.markdown(
         f"""
-        <div style='background-color: rgba(255,255,255,0.8); color: black; padding: 15px; border-radius: 10px; font-size:16px;'>
+        <div style='background-color: rgba(255,255,255,0.85); color: black; padding: 15px; border-radius: 10px; font-size:16px;'>
         <b>Pickup Zone:</b> {pickup_zone} <br>
         <b>Dropoff Zone:</b> {dropoff_zone} <br>
         <b>Distance (km):</b> {trip_distance_km:.2f} <br>
