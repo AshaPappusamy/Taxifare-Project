@@ -12,6 +12,9 @@ zones_df = pd.read_csv("Zones.csv")
 lookup_df = pd.read_csv("distance_duration_lookup.csv")
 model = joblib.load("best_gradient_boosting_model.pkl")
 
+# Get expected model features
+expected_features = model.feature_names_in_
+
 # -----------------------------
 # Streamlit Page Config
 # -----------------------------
@@ -19,6 +22,25 @@ st.set_page_config(
     page_title="🚕 NYC Taxi Fare Predictor",
     layout="wide"
 )
+
+# -----------------------------
+# Add background image (taxi stand)
+# -----------------------------
+page_bg_img = """
+<style>
+body {
+background-image: url("https://images.unsplash.com/photo-1505575967450-2b0b1d9f3de1?auto=format&fit=crop&w=1950&q=80");
+background-size: cover;
+background-attachment: fixed;
+}
+.stButton>button {
+background-color: #28a745;
+color: white;
+font-size: 18px;
+}
+</style>
+"""
+st.markdown(page_bg_img, unsafe_allow_html=True)
 
 st.title("🚕 NYC Taxi Fare Predictor")
 st.markdown("Estimate your total fare instantly 💰")
@@ -28,7 +50,6 @@ st.markdown("Estimate your total fare instantly 💰")
 # -----------------------------
 st.sidebar.header("Enter Trip Details")
 
-# Unique zones for dropdown
 pickup_zones = zones_df['Zone'].str.strip().unique().tolist()
 dropoff_zones = zones_df['Zone'].str.strip().unique().tolist()
 
@@ -51,7 +72,6 @@ if not trip_info.empty:
     trip_distance_km = trip_info['avg_distance_km'].values[0]
     trip_duration_hr = trip_info['avg_duration_hr'].values[0]
 else:
-    # Defaults if missing
     trip_distance_km = 5.0
     trip_duration_hr = 0.5
 
@@ -81,8 +101,15 @@ input_data = pd.DataFrame({
     'pickup_day':[pickup_day],
     'pickup_month':[pickup_month],
     'pickup_weekday':[pickup_weekday]
-    # Add other columns if your model requires
 })
+
+# Add missing columns expected by model with 0
+for col in expected_features:
+    if col not in input_data.columns:
+        input_data[col] = 0
+
+# Reorder columns to match model
+input_data = input_data[expected_features]
 
 # -----------------------------
 # Layout: Map + Bill Summary
@@ -100,10 +127,17 @@ with col1:
 
 with col2:
     st.markdown("### 🧾 Trip Summary")
-    st.write(pd.DataFrame({
-        'Detail':['Pickup Zone','Dropoff Zone','Distance (km)','Duration (hr)','Passenger Count'],
-        'Value':[pickup_zone, dropoff_zone, trip_distance_km, trip_duration_hr, passenger_count]
-    }))
+    st.markdown(
+        f"""
+        <div style='background-color: rgba(255,255,255,0.8); padding: 10px; border-radius: 10px;'>
+        <b>Pickup Zone:</b> {pickup_zone} <br>
+        <b>Dropoff Zone:</b> {dropoff_zone} <br>
+        <b>Distance (km):</b> {trip_distance_km:.2f} <br>
+        <b>Duration (hr):</b> {trip_duration_hr:.2f} <br>
+        <b>Passenger Count:</b> {passenger_count} <br>
+        </div>
+        """, unsafe_allow_html=True
+    )
 
 # -----------------------------
 # Predict Button
@@ -111,5 +145,5 @@ with col2:
 st.markdown("<br>", unsafe_allow_html=True)
 if st.button("💚 Predict Fare", help="Click to predict the total fare"):
     prediction_log = model.predict(input_data)[0]
-    total_fare = math.exp(prediction_log)  # reverse log-transform
+    total_fare = math.exp(prediction_log)
     st.success(f"💵 Estimated Total Fare: **${total_fare:.2f}**")
