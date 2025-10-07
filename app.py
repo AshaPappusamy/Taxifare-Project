@@ -8,10 +8,16 @@ import math
 # -------------------------
 # Load Zones and Model
 # -------------------------
-zones_df = pd.read_csv("Zones.csv")  # Make sure this file is in repo root
-pickup_zones = zones_df['Zone'].str.strip().unique().tolist()
+zones_df = pd.read_csv("Zones.csv")
+
+# Standardize column names to avoid KeyError
+zones_df.rename(columns=lambda x: x.strip().capitalize(), inplace=True)
+
+# Get pickup and dropoff zones
+pickup_zones = zones_df['Zone'].unique().tolist()
 dropoff_zones = pickup_zones.copy()
 
+# Load trained model
 model = joblib.load("best_gradient_boosting_model.pkl")
 
 # -------------------------
